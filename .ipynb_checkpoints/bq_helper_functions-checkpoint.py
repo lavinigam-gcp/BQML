@@ -118,8 +118,66 @@ def get_table_metadata(table_details_dict):
     """.format(project_id = table_details_dict['project_id'],
                    dataset_id = table_details_dict['dataset_id'])
     return [get_df_from_query(query),debugLogSQL(query)]
-# def get_specific_datatype_fromtable(datatype_table,dtype):
 
+def get_specific_datatype_table(table_details_dict,dtype,limit=10):
+    query = """
+            DECLARE query STRING;
+            DECLARE columns ARRAY<STRING>;
+            # get all the specific columns in an array 
+            SET columns = (
+              WITH all_columns AS (
+                SELECT column_name
+                FROM `{project_id}.{dataset_id}.INFORMATION_SCHEMA.COLUMNS`
+                WHERE table_name = 'events_20210128'
+                and  data_type IN {dtype}
+              )
+              SELECT ARRAY_AGG((column_name) ) AS columns
+              FROM all_columns
+            );
+
+            SET query = (select STRING_AGG(x) from unnest(columns) as x);
+
+            EXECUTE IMMEDIATE 
+            "select " || query || " from `{project_id}.{dataset_id}.{table_name}` LIMIT {LIMIT}";
+            """.format(project_id = table_details_dict['project_id'],
+                   dataset_id = table_details_dict['dataset_id'],
+                   table_name = table_details_dict['table_name'],
+                  dtype = dtype,
+                      LIMIT=limit)
+    return [get_df_from_query(query),debugLogSQL(query)]
+
+def get_count_percentage_fromtable(table_details_dict,dtype,limit=10):
+    query = """
+            DECLARE query STRING;
+            DECLARE columns ARRAY<STRING>;
+            DECLARE count INT64;
+          
+            SET columns = (
+              WITH all_columns AS (
+                SELECT column_name
+                FROM `{project_id}.{dataset_id}.INFORMATION_SCHEMA.COLUMNS`
+                WHERE table_name = 'events_20210128'
+                and  data_type IN {dtype}
+              )
+              SELECT ARRAY_AGG((column_name) ) AS columns
+              FROM all_columns
+            );
+            set count = (SELECT
+            COUNT(*)
+            FROM {project_id}.{dataset_id}.{table_name});
+            set query = (select STRING_AGG('ROUND(COUNT(DISTINCT ' ||x||")/"||count||",2)*100  as "||x||'_prcntg') 
+            from unnest(columns) as x);
+
+            EXECUTE IMMEDIATE 
+            "select " || query || " from `{project_id}.{dataset_id}.{table_name}` LIMIT {LIMIT}";
+            """.format(project_id = table_details_dict['project_id'],
+                   dataset_id = table_details_dict['dataset_id'],
+                   table_name = table_details_dict['table_name'],
+                  dtype = dtype,
+                      LIMIT=limit)
+    return [get_df_from_query(query),debugLogSQL(query)]    
+    
+    
 # def get_data_count_profile(table_details_dict):
 #     data_count_dict = {}
 #     query = """
