@@ -71,7 +71,7 @@ def get_datatypes_of_column(table_details_dict,specific_type=None):
                    table_name = table_details_dict['table_name'],
                   dtype = specific_type)
         return [get_df_from_query(query),debugLogSQL(query)]
-    elif specific_type == 'STRUCT%':
+    elif specific_type == 'STRUCT':
         query = """
         SELECT 
         column_name,ordinal_position,
@@ -85,10 +85,10 @@ def get_datatypes_of_column(table_details_dict,specific_type=None):
                   dtype = specific_type)
         return [get_df_from_query(query),debugLogSQL(query)]
     else:
-        return """
+        return ["ERROR", """
         Not correct dataype supplied or no columns with that type. Try with - 
         STRING, INT64,FLOAT64,ARRAY, STRUCT
-        """
+        """]
                 
         
 
