@@ -1,6 +1,7 @@
 #Python Helper Functions
 
 from google.cloud import bigquery
+import pandas as pd
 
 def debugLogSQL(sql):
     # Make sure to use "Query Formatter" in "More" option in CBQ Console
@@ -9,7 +10,7 @@ def debugLogSQL(sql):
 def get_df_from_query(query):
     # return df from the query given. 
     #Dont pass on big data queries. Usefule for small datasets  
-    client = bigquery.Client()
+    client = bigquery.Client('bq-test-01-338016')
     query_job = client.query(query)
     result_df = query_job.to_dataframe()
     return result_df
@@ -177,7 +178,94 @@ def get_count_percentage_fromtable(table_details_dict,dtype,limit=10):
                       LIMIT=limit)
     return [get_df_from_query(query),debugLogSQL(query)]    
     
+def get_data_describe_numerical(table_details_dict,dtype):
     
+    query = """
+    
+            DECLARE query1 STRING;
+            DECLARE query2 STRING;
+            DECLARE query3 STRING;
+            DECLARE query4 STRING;
+            DECLARE query5 STRING;
+            DECLARE query6 STRING;
+            DECLARE query7 STRING;
+
+            DECLARE count INT64;
+            DECLARE columns ARRAY<STRING>;
+            # get all the specific columns in an array 
+            SET columns = (
+              WITH all_columns AS (
+                SELECT column_name
+                FROM `{project_id}.{dataset_id}.INFORMATION_SCHEMA.COLUMNS`
+                WHERE table_name = 'events_20210128'
+                and  data_type IN {dtype}
+              )
+              SELECT ARRAY_AGG((column_name) ) AS columns
+              FROM all_columns
+            );
+
+            set count = (SELECT
+                COUNT(*)
+              FROM
+                {project_id}.{dataset_id}.{table_name});
+
+            set query1 = (select STRING_AGG('ROUND(stddev( ' ||x||"),2)  as "||x) 
+                        from unnest(columns) as x);
+            set query2 = (select STRING_AGG('ROUND(avg( ' ||x||"),2)  as "||x) 
+                        from unnest(columns) as x);
+            set query3 = (select STRING_AGG('ROUND(min( ' ||x||"),2)  as "||x) 
+                        from unnest(columns) as x);
+            set query4 = (select STRING_AGG('ROUND(max( ' ||x||"),2)  as "||x) 
+                        from unnest(columns) as x);
+            set query5 = (select STRING_AGG('(select PERCENTILE_CONT( '||x||', 0.5) over()  from `{project_id}.{dataset_id}.{table_name}` limit 1) '||x ) AS string_agg 
+                        from unnest(columns) x );
+            set query6 = (select STRING_AGG('(select PERCENTILE_CONT( '||x||', 0.25) over()  from `{project_id}.{dataset_id}.{table_name}` limit 1) '||x ) AS string_agg 
+                        from unnest(columns) x );
+            set query7 = (select STRING_AGG('(select PERCENTILE_CONT( '||x||', 0.75) over()  from `{project_id}.{dataset_id}.{table_name}` limit 1) '||x ) AS string_agg 
+                        from unnest(columns) x );
+            set query8 = (select STRING_AGG('max( ' ||x||")  as "||x) 
+                        from unnest(columns) as x);
+            EXECUTE IMMEDIATE
+            "SELECT  'STD-Dev' ,"|| query1 || ' from `{project_id}.{dataset_id}.{table_name}`'||" UNION ALL " ||
+            "SELECT  'Mean' ,"|| query2 || ' from `{project_id}.{dataset_id}.{table_name}`'||" UNION ALL " ||
+            "SELECT  'Min' ,"|| query3 || ' from `{project_id}.{dataset_id}.{table_name}`'||" UNION ALL " ||
+            "SELECT  'Max' ,"|| query4 || ' from `{project_id}.{dataset_id}.{table_name}`'||" UNION ALL " ||
+            "SELECT  'Percentile-5' ,"|| query5||" UNION ALL " ||
+            "SELECT  'Percentile-25' ,"|| query6||" UNION ALL " ||
+            "SELECT  'Percentile-75' ,"|| query7
+            ;
+
+        """.format(project_id = table_details_dict['project_id'],
+                   dataset_id = table_details_dict['dataset_id'],
+                   table_name = table_details_dict['table_name'],
+                  dtype = dtype)
+    return [get_df_from_query(query),debugLogSQL(query)]
+
+def get_describe_category(table_details_dict,exclude_list,all_table=True):
+    client = bigquery.Client()
+    value_count_df = pd.DataFrame(columns = ['Value','count','column_name'])
+    table_params = get_table_detail_dict(table_details_dict['project_id'],table_details_dict['dataset_id'],'events_20201119')
+    df , query = get_datatypes_of_column(table_params,specific_type="STRING") #table name is required
+    if all_table:
+        for each_col in df['column_name']:
+            if each_col not in exclude_list:
+                column = each_col
+                query = """
+                SELECT {column_name}, count(*)
+                from `{project_id}.{dataset_id}.events_*`
+                GROUP BY {column_name}
+                """.format(project_id = table_details_dict['project_id'],
+                           dataset_id = table_details_dict['dataset_id'],
+                           column_name = column)
+                query_job = client.query(query)
+                count_df = query_job.to_dataframe()
+                count_df['Column_Name'] = column
+                count_df.columns = ['Value','count','column_name']
+                value_count_df = value_count_df.append(count_df,ignore_index=True)
+    return value_count_df
+
+
+
 # def get_data_count_profile(table_details_dict):
 #     data_count_dict = {}
 #     query = """
