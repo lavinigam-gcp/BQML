@@ -242,7 +242,7 @@ def get_data_describe_numerical(table_details_dict,dtype):
     return [get_df_from_query(query),debugLogSQL(query)]
 
 def get_describe_category(table_details_dict,exclude_list,all_table=True):
-    client = bigquery.Client()
+    client = bigquery.Client('bq-test-01-338016')
     value_count_df = pd.DataFrame(columns = ['Value','count','column_name'])
     table_params = get_table_detail_dict(table_details_dict['project_id'],table_details_dict['dataset_id'],'events_20201119')
     df , query = get_datatypes_of_column(table_params,specific_type="STRING") #table name is required
