@@ -7,10 +7,10 @@ def debugLogSQL(sql):
     # Make sure to use "Query Formatter" in "More" option in CBQ Console
     return(' '.join([line.strip() for line in sql.splitlines()]).strip())
     
-def get_df_from_query(query):
+def get_df_from_query(client, query):
     # return df from the query given. 
     #Dont pass on big data queries. Usefule for small datasets  
-    client = bigquery.Client('bq-test-01-338016')
+    #client = bigquery.Client('bq-test-01-338016')
     query_job = client.query(query)
     result_df = query_job.to_dataframe()
     return result_df
@@ -22,11 +22,11 @@ def get_table_detail_dict(project_id,dataset_id,table_name=None):
     table_details_dict['table_name'] = table_name
     return table_details_dict
 
-def get_data_shape(table_details_dict):
+def get_data_shape(table_details_dict, subtable_name=''):
     query ="""
     SELECT  
     count(distinct column_name),
-    (select  count(*) from  `{project_id}.{dataset_id}.events_*`)
+    (select  count(*) from  `{project_id}.{dataset_id}.{subtable_name}*`)
     FROM `{project_id}.{dataset_id}.INFORMATION_SCHEMA.COLUMNS`
     """.format(project_id = table_details_dict['project_id'],
                dataset_id = table_details_dict['dataset_id'])
