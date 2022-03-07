@@ -22,11 +22,11 @@ def get_table_detail_dict(project_id,dataset_id,table_name=None):
     table_details_dict['table_name'] = table_name
     return table_details_dict
 
-def get_data_shape(table_details_dict, subtable_name=''):
+def get_data_shape(table_details_dict):
     query ="""
     SELECT  
     count(distinct column_name),
-    (select  count(*) from  `{project_id}.{dataset_id}.{subtable_name}*`)
+    (select  count(*) from  `{project_id}.{dataset_id}.events_*`)
     FROM `{project_id}.{dataset_id}.INFORMATION_SCHEMA.COLUMNS`
     """.format(project_id = table_details_dict['project_id'],
                dataset_id = table_details_dict['dataset_id'])
@@ -242,7 +242,7 @@ def get_data_describe_numerical(table_details_dict,dtype):
     return [get_df_from_query(query),debugLogSQL(query)]
 
 def get_describe_category(table_details_dict,exclude_list,all_table=True):
-    client = bigquery.Client('bq-test-01-338016')
+    client = bigquery.Client()
     value_count_df = pd.DataFrame(columns = ['Value','count','column_name'])
     table_params = get_table_detail_dict(table_details_dict['project_id'],table_details_dict['dataset_id'],'events_20201119')
     df , query = get_datatypes_of_column(table_params,specific_type="STRING") #table name is required
