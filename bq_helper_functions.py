@@ -7,10 +7,10 @@ def debugLogSQL(sql):
     # Make sure to use "Query Formatter" in "More" option in CBQ Console
     return(' '.join([line.strip() for line in sql.splitlines()]).strip())
     
-def get_df_from_query(client, query):
+def get_df_from_query(query):
     # return df from the query given. 
     #Dont pass on big data queries. Usefule for small datasets  
-    #client = bigquery.Client('bq-test-01-338016')
+    client = bigquery.Client('bq-test-01-338016')
     query_job = client.query(query)
     result_df = query_job.to_dataframe()
     return result_df
