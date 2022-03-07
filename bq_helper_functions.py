@@ -223,8 +223,6 @@ def get_data_describe_numerical(table_details_dict,dtype):
                         from unnest(columns) x );
             set query7 = (select STRING_AGG('(select PERCENTILE_CONT( '||x||', 0.75) over()  from `{project_id}.{dataset_id}.{table_name}` limit 1) '||x ) AS string_agg 
                         from unnest(columns) x );
-            set query8 = (select STRING_AGG('max( ' ||x||")  as "||x) 
-                        from unnest(columns) as x);
             EXECUTE IMMEDIATE
             "SELECT  'STD-Dev' ,"|| query1 || ' from `{project_id}.{dataset_id}.{table_name}`'||" UNION ALL " ||
             "SELECT  'Mean' ,"|| query2 || ' from `{project_id}.{dataset_id}.{table_name}`'||" UNION ALL " ||
